@@ -81,14 +81,21 @@ int main() {
 	head->col = width/2;
 	head->next = NULL;
 	end = malloc(sizeof(bodyPart));
+	head->prev = end;
 	end->row = head->row;
 	end->col = head->col - 1;
 	end->next = head;
-	end->prev = NULL;
-	head->prev = end;
+	end->prev = malloc(sizeof(bodyPart));
+	end->prev->next = end;
+	end->prev->prev = NULL;
+	end = end->prev;
+	end->row = head->row;
+	end->col = head->col - 2;
 	mvaddch(head->row, head->col, '$');
+	mvaddch(head->prev->row, head->prev->col, '*');
 	mvaddch(end->row, end->col, '*');
 	refresh();
+	int length = 3;
 	//input listener thread
 	pthread_t listener, foodSpawner, collisionCheck;
 	pthread_create(&listener, NULL, listenForInput, NULL);
@@ -97,17 +104,20 @@ int main() {
 	while(running){
 		if ((foo != NULL) && (head->row == foo->y) && (head->col == foo->x)) {
 			score++;
+			length++;
 			end->prev = malloc(sizeof(bodyPart));
 			end->prev->next = end;
 			end = end->prev;
 			//add bodypart
 		}
 		//head move
+		
 		if (head->row < height - 1 && head->col < width - 1 && head->row > 0 && head->col > 0){
 			//mvaddch(head->row, head->col, ' ');
 			//work back from head, then move head along, then print everything and add blank after end piece
 			current = end;
 			mvaddch(end->row, end->col,' ');
+			pthread_create(&collisionCheck, NULL, checkCollision, NULL);
 			while (current->next != NULL){
 				current->row = current->next->row;
 				current->col = current->next->col;
@@ -128,14 +138,14 @@ int main() {
 					head->col = head->col + 1;
 				break;	
 			}
-			pthread_create(&collisionCheck, NULL, checkCollision, NULL);
+			mvprintw(0, width - 40, "Length: %d", length);
 			mvprintw(0, width - 20, "Score: %d", score);
 			mvaddch(head->row, head->col, '$');
 			pthread_join(collisionCheck, NULL);
 		}
 		else {running = 0;}
 		refresh();
-		usleep(40000);
+		usleep(20000);
 	}
 	clear();
 	mvprintw(height/2 -1 , width/2 - 10, "Score: %d\0", score);
